@@ -3,17 +3,36 @@ package render
 import (
 	"bytes"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"path/filepath"
-	"text/template"
+
+	"github.com/Professor833/go_web_app/pkg/config"
+	"github.com/Professor833/go_web_app/pkg/models"
 )
 
-func RenderTemplate(w http.ResponseWriter, tmpl string) {
-	// create a template cache
-	tc, err := createTemplateCache()
-	if err != nil {
-		log.Fatal(err)
+var app *config.AppConfig
+
+// NewTemplates sets the config for the template package
+func NewTemplates(a *config.AppConfig) {
+	app = a
+}
+
+// AddDefaultData adds default data to the templateData
+func AddDefaultData(td *models.TemplateData) *models.TemplateData {
+	return td
+}
+
+func RenderTemplate(w http.ResponseWriter, tmpl string, templateData *models.TemplateData) {
+	var tc map[string]*template.Template
+
+	// get the template cache from the app config
+	if app.UseCache {
+		tc = app.TemplateCache
+	} else {
+		// create a template cache
+		tc, _ = CreateTemplateCache()
 	}
 
 	// get requested template from cache
@@ -22,20 +41,21 @@ func RenderTemplate(w http.ResponseWriter, tmpl string) {
 		log.Fatal("Could not get template from template cache")
 	}
 
-	buf := new(bytes.Buffer)
+	buf := new(bytes.Buffer) // create a buffer to hold the template
 
-	err = t.Execute(buf, nil)
-	if err != nil {
-		fmt.Println("Error parsing template: ", err)
-	}
+	// add default data to the templateData
+	templateData = AddDefaultData(templateData)
+
+	_ = t.Execute(buf, templateData) // execute the template
+
 	// render the template
-	_, err = buf.WriteTo(w)
+	_, err := buf.WriteTo(w)
 	if err != nil {
 		fmt.Println("Error writing template to browser: ", err)
 	}
 }
 
-func createTemplateCache() (map[string]*template.Template, error) {
+func CreateTemplateCache() (map[string]*template.Template, error) {
 	// myCache := make(map[string]*template.Template)
 	myCache := map[string]*template.Template{}
 
