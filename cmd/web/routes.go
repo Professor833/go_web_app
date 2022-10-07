@@ -5,13 +5,19 @@ import (
 
 	"github.com/Professor833/go_web_app/pkg/config"
 	"github.com/Professor833/go_web_app/pkg/handlers"
-	"github.com/bmizerany/pat"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 func routes(app *config.AppConfig) http.Handler {
-	mux := pat.New() // Create a new multiplexer
-	mux.Get("/", http.HandlerFunc(handlers.Repo.Home))
-	mux.Get("/about", http.HandlerFunc(handlers.Repo.About))
+	mux := chi.NewRouter() // mux is a multiplexer
+
+	mux.Use(middleware.Recoverer)
+	mux.Use(NoSurf)
+	mux.Use(SessionLoad)
+
+	mux.Get("/", handlers.Repo.Home)
+	mux.Get("/about", handlers.Repo.About)
 
 	return mux
 }
